@@ -33,35 +33,37 @@ Text  ──► DistilBERT ──► Projection ──► ┘
 
 ---
 
-## Project Structure
+## Notebook Structure
 
-```
-mini-clip/
-├── model.py       # ImageEncoder, TextEncoder, InfoNCE loss, MiniCLIP
-├── dataset.py     # Flickr30k dataset loader, transforms, DataLoader factory
-├── train.py       # Two-phase training loop, Recall@K eval, checkpointing
-├── eval.py        # Retrieval demos, zero-shot classification, plots
-└── README.md
-```
+All code is in a single Kaggle notebook, organized as:
+
+| Section | Description |
+|---|---|
+| 1. Imports & Config | Dependencies, hyperparameters, paths |
+| 2. Dataset & Dataloaders | Flickr30k loader, train/val/test split, transforms |
+| 3. Model Architecture | ImageEncoder, TextEncoder, projection heads |
+| 4. InfoNCE Loss | Symmetric contrastive loss, learnable temperature |
+| 5. Training Loop | Per-epoch train, gradient clipping, LR scheduling |
+| 6. Phase 1 — Frozen Backbones | Train only projection heads (5 epochs, lr=1e-3) |
+| 7. Phase 2 — Fine-tuning | Unfreeze encoders, end-to-end training (10 epochs, lr=1e-5) |
+| 8. Evaluation — Recall@K | R@1, R@5, R@10 on test set |
+| 9. Demo — Text-to-Image Retrieval | Natural language query → top-5 images |
+| 10. Demo — Zero-Shot Classification | Image → ranked class predictions, no labels |
 
 ---
 
 ## Setup
 
-**Requirements**
-```bash
-pip install torch torchvision transformers pandas matplotlib pillow tqdm
-```
-
 **Dataset**
 
-Download [Flickr30k from Kaggle](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) and place it as:
+Uses [Flickr30k from Kaggle](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) — add it directly to your Kaggle notebook as an input dataset.
+
+**Dependencies** — all pre-installed on Kaggle except:
+```python
+!pip install transformers -q
 ```
-/kaggle/input/flickr30k/
-    flickr30k_images/
-        *.jpg
-    results.csv
-```
+
+**Hardware** — trained on Kaggle T4 GPU. Total training time ~2 hours.
 
 ---
 
@@ -74,14 +76,6 @@ Only the projection heads are trained. Fast convergence, stable loss.
 
 **Phase 2 — Fine-tuned** (10 epochs, lr=1e-5)
 Both encoders are unfrozen and fine-tuned end-to-end with a lower learning rate.
-
-```bash
-python train.py
-```
-
-Checkpoints are saved to `/kaggle/working/checkpoints/` whenever validation Recall@1 improves.
-
-**Training config** (edit in `train.py`):
 
 | Parameter | Phase 1 | Phase 2 |
 |---|---|---|
@@ -98,55 +92,13 @@ Metric: **Recall@K** (image-to-text retrieval on the test set)
 
 For each image, all captions are ranked by cosine similarity. Recall@K measures how often the correct caption appears in the top-K results.
 
-| Metric | Expected (after Phase 2) |
+| Metric | Result |
 |---|---|
-| R@1 | ~40–50% |
-| R@5 | ~70–80% |
-| R@10 | ~80–85% |
+| R@1 | — |
+| R@5 | — |
+| R@10 | — |
 
-*Results on Flickr30k test set (1000 images, 1 caption per image).*
-
----
-
-## Inference
-
-```python
-from model import MiniCLIP
-from transformers import DistilBertTokenizer
-import torch
-
-model = MiniCLIP(embed_dim=256, freeze_backbones=False)
-ckpt  = torch.load("checkpoints/phase_2_best.pt", map_location="cpu")
-model.load_state_dict(ckpt["model"])
-model.eval()
-
-tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-```
-
-**Text-to-Image Retrieval**
-```python
-from eval import retrieve_images, build_image_index
-
-image_embs, image_paths = build_image_index(model, test_loader)
-results = retrieve_images(
-    query="two children playing in the snow",
-    model=model, tokenizer=tokenizer,
-    image_embs=image_embs, image_paths=image_paths,
-    root_dir="flickr30k_images/", top_k=5
-)
-```
-
-**Zero-Shot Classification**
-```python
-from eval import zero_shot_classify
-
-ranked = zero_shot_classify(
-    image_path="flickr30k_images/123456.jpg",
-    class_names=["dog", "cat", "person", "car", "beach"],
-    model=model, tokenizer=tokenizer
-)
-# [('dog', 0.82), ('beach', 0.11), ...]
-```
+*Fill in after training. Test set: 1000 images, 1 caption per image.*
 
 ---
 
