@@ -127,7 +127,4 @@ For each image, all captions are ranked by cosine similarity. Recall@K measures 
 
 ## Author
 
-**Deetya Mehta** — B.Tech + M.Tech CS, IIITDM Kancheepuram
-
-[![GitHub](https://img.shields.io/badge/GitHub-deerobo1-181717?logo=github)](https://github.com/deerobo1)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Deetya%20Mehta-0A66C2?logo=linkedin)](https://linkedin.com/in/deetya-mehta-046582282)
+**Deetya Mehta**
